@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OECRL 주문 신청</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1B2430;
+    --ink-soft: #4A5568;
+    --line: #DDE2E6;
+    --surface: #FFFFFF;
+    --bg: #F4F5F3;
+    --accent: #3D6B5C;
+    --accent-soft: #E7EFEC;
+    --amber: #C97A2B;
+    --amber-soft: #FBEEDF;
+    --danger: #B0403A;
+    --danger-soft: #F8E9E8;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  header.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    background: var(--ink);
+    color: #F4F5F3;
+  }
+  header.topbar .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header.topbar .brand .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #8FBFA8;
+    box-shadow: 0 0 0 3px rgba(143,191,168,0.25);
+  }
+  nav.tabs { display: flex; gap: 4px; }
+  nav.tabs button {
+    background: transparent;
+    border: 1px solid rgba(244,245,243,0.25);
+    color: #CBD2D9;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  nav.tabs button.active {
+    background: #F4F5F3;
+    color: var(--ink);
+    border-color: #F4F5F3;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* --- 신청 화면 --- */
+  .hero { margin-bottom: 28px; }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .hero p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .field .req { color: var(--amber); margin-left: 2px; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 11px 13px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FCFCFB;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+  }
+  .field input[type=file] {
+    padding: 9px 10px;
+    background: #FCFCFB;
+    font-size: 13.5px;
+  }
+  .field .hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 11.5px;
+    color: #9AA5AE;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) {
+    .row2, .row3 { grid-template-columns: 1fr; }
+  }
+  .total-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 14px 0 6px;
+    border-top: 1px dashed var(--line);
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .total-line .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  button.submit {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background .15s ease, transform .1s ease;
+  }
+  button.submit:hover { background: #345C4F; }
+  button.submit:active { transform: scale(0.99); }
+  button.submit:disabled { background: #A8B3AE; cursor: default; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--ink);
+    color: #fff;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .25s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast .check {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #8FBFA8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--ink); flex-shrink: 0;
+  }
+
+  .admin-link {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 12.5px;
+    color: #9AA5AE;
+  }
+  .admin-link a { color: #9AA5AE; text-decoration: underline; cursor: pointer; }
+
+  /* --- 관리자 화면 --- */
+  .admin-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .admin-head h1 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin: 0 0 4px; }
+  .admin-head p { margin: 0; color: var(--ink-soft); font-size: 13.5px; }
+
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 108px;
+  }
+  .stat .label { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 4px; }
+  .stat .value { font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 600; }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input[type=text] {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px 11px;
+    font-size: 13.5px;
+    background: #fff;
+    font-family: inherit;
+  }
+  .filter-bar input[type=text] { flex: 1; min-width: 140px; }
+  .filter-bar .refresh {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .filter-bar .refresh:hover { background: #F0F1EF; }
+
+  table.orders {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 13.5px;
+  }
+  table.orders th {
+    text-align: left;
+    background: #F7F7F5;
+    color: var(--ink-soft);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  table.orders td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  table.orders tr:last-child td { border-bottom: none; }
+  table.orders tr:hover td { background: #FBFBFA; }
+  .amt { font-family: 'JetBrains Mono', monospace; text-align: right; white-space: nowrap; }
+  .req-name { font-weight: 600; }
+  .item-name { color: var(--ink); }
+  .item-vendor { color: var(--ink-soft); font-size: 12px; }
+  .notes-cell { color: var(--ink-soft); font-size: 12.5px; max-width: 160px; }
+
+  .chk-cell { text-align: center; }
+  .chk-cell input[type=checkbox] {
+    width: 18px; height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .status-pill {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .status-pending { background: var(--amber-soft); color: var(--amber); }
+  .status-ordered { background: var(--accent-soft); color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .quote-btn {
+    display: inline-block;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .quote-btn:hover { background: var(--accent-soft); }
+  .quote-btn:disabled { opacity: 0.5; cursor: default; }
+  .del-btn {
+    border: none;
+    background: transparent;
+    color: #B7BEC4;
+    cursor: pointer;
+    font-size: 15px;
+    padding: 4px;
+  }
+  .del-btn:hover { color: var(--danger); }
+
+  .loading { text-align: center; padding: 40px; color: var(--ink-soft); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span>OECRL 주문 신청</div>
+  <nav class="tabs">
+    <button id="tab-form" class="active">주문 신청</button>
+    <button id="tab-admin">관리자</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- 신청 화면 -->
+  <section id="view-form" class="view active">
+    <div class="hero">
+      <h1>필요한 물품을 신청하세요</h1>
+      <p>업체명, 물품명, 수량, 단가를 입력하면 바로 목록에 올라갑니다.</p>
+    </div>
+    <div class="card">
+      <form id="orderForm">
+        <div class="field">
+          <label>신청자<span class="req">*</span></label>
+          <input type="text" id="requester" placeholder="이름" required />
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>업체명<span class="req">*</span></label>
+            <input type="text" id="vendor" placeholder="예: OO시약, OO전자상사" required />
+          </div>
+          <div class="field">
+            <label>물품명<span class="req">*</span></label>
+            <input type="text" id="item" placeholder="예: 에탄올 4L" required />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>주문 일자<span class="req">*</span></label>
+            <input type="date" id="orderDate" required />
+          </div>
+          <div class="field">
+            <label>규격/비고</label>
+            <input type="text" id="spec" placeholder="용량, 모델명 등 (선택)" />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>수량<span class="req">*</span></label>
+            <input type="number" id="quantity" min="1" value="1" required />
+          </div>
+          <div class="field">
+            <label>단가(원)<span class="req">*</span></label>
+            <input type="number" id="unitPrice" min="0" step="1" placeholder="0" required />
+          </div>
+        </div>
+        <div class="field">
+          <label>견적서 첨부 (선택)</label>
+          <input type="file" id="quoteFile" accept=".pdf,image/*" />
+          <span class="hint">PDF 또는 이미지, 4MB 이하</span>
+        </div>
+        <div class="total-line">
+          <span>예상 합계</span>
+          <span class="amount mono" id="totalDisplay">0원</span>
+        </div>
+        <button type="submit" class="submit" id="submitBtn">신청 보내기</button>
+      </form>
+    </div>
+    <div class="admin-link">관리하시는 분이라면 <a id="goAdmin">관리자 화면</a>으로 이동하세요.</div>
+  </section>
+
+  <!-- 관리자 비밀번호 확인 -->
+  <section id="view-admin-lock" class="view">
+    <div class="hero">
+      <h1>관리자 확인</h1>
+      <p>비밀번호를 입력하면 대시보드로 이동합니다.</p>
+    </div>
+    <div class="card" style="max-width:360px;">
+      <form id="adminLockForm">
+        <div class="field">
+          <label>비밀번호</label>
+          <input type="password" id="adminPassword" placeholder="비밀번호 입력" autocomplete="off" required />
+        </div>
+        <div id="adminLockError" style="display:none;color:var(--danger);font-size:13px;margin:-8px 0 14px;">비밀번호가 올바르지 않습니다.</div>
+        <button type="submit" class="submit">확인</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 관리자 화면 -->
+  <section id="view-admin" class="view">
+    <div class="admin-head">
+      <div>
+        <h1>주문 관리 대시보드</h1>
+        <p>전체 신청 내역을 확인하고 발주·청구 여부를 체크하세요.</p>
+      </div>
+    </div>
+
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="filter-bar">
+      <input type="text" id="searchBox" placeholder="신청자, 업체명, 물품명 검색" />
+      <select id="filterStatus">
+        <option value="all">전체 상태</option>
+        <option value="pending">발주 대기</option>
+        <option value="ordered">발주 완료</option>
+      </select>
+      <select id="filterBilled">
+        <option value="all">청구 전체</option>
+        <option value="unbilled">청구 전</option>
+        <option value="billed">청구 완료</option>
+      </select>
+      <button class="refresh" id="refreshBtn">↻ 새로고침</button>
+    </div>
+
+    <div id="tableWrap"></div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"><span class="check">✓</span><span id="toastMsg">신청이 저장되었습니다</span></div>
+
+<script>
+  // ---------- 백엔드 연결 ----------
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxS3DcZ_MasLWrG01cgQzAIsL7lrv2WPGeqZBsaxJuN3AVZS7XHMbDYfji64I-6Dsxg/exec';
+
+  // ---------- 공통 유틸 ----------
+  const won = n => (Number(n) || 0).toLocaleString('ko-KR') + '원';
+  const fmtDate = iso => {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---------- 탭 전환 ----------
+  const tabForm = document.getElementById('tab-form');
+  const tabAdmin = document.getElementById('tab-admin');
+  const viewForm = document.getElementById('view-form');
+  const viewAdmin = document.getElementById('view-admin');
+  const viewAdminLock = document.getElementById('view-admin-lock');
+  const ADMIN_PASSWORD = 'oecrl305*';
+  let adminUnlocked = false;
+
+  function hideAllViews() {
+    viewForm.classList.remove('active');
+    viewAdmin.classList.remove('active');
+    viewAdminLock.classList.remove('active');
+  }
+
+  function goToAdmin() {
+    tabForm.classList.remove('active');
+    tabAdmin.classList.add('active');
+    hideAllViews();
+    location.hash = 'admin';
+    if (adminUnlocked) {
+      viewAdmin.classList.add('active');
+      loadOrders();
+    } else {
+      viewAdminLock.classList.add('active');
+      const pwInput = document.getElementById('adminPassword');
+      pwInput.value = '';
+      document.getElementById('adminLockError').style.display = 'none';
+      setTimeout(() => pwInput.focus(), 0);
+    }
+  }
+  function goToForm() {
+    tabAdmin.classList.remove('active');
+    tabForm.classList.add('active');
+    hideAllViews();
+    viewForm.classList.add('active');
+    location.hash = '';
+  }
+  tabAdmin.addEventListener('click', goToAdmin);
+  tabForm.addEventListener('click', goToForm);
+  document.getElementById('goAdmin').addEventListener('click', goToAdmin);
+
+  document.getElementById('adminLockForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = document.getElementById('adminPassword').value;
+    if (val === ADMIN_PASSWORD) {
+      adminUnlocked = true;
+      viewAdminLock.classList.remove('active');
+      viewAdmin.classList.add('active');
+      loadOrders();
+    } else {
+      document.getElementById('adminLockError').style.display = 'block';
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('adminPassword').focus();
+    }
+  });
+
+  if (location.hash === '#admin') goToAdmin();
+
+  // ---------- 신청 폼 ----------
+  const qtyEl = document.getElementById('quantity');
+  const priceEl = document.getElementById('unitPrice');
+  const totalDisplay = document.getElementById('totalDisplay');
+  function updateTotal() {
+    const t = (Number(qtyEl.value) || 0) * (Number(priceEl.value) || 0);
+    totalDisplay.textContent = won(t);
+  }
+  qtyEl.addEventListener('input', updateTotal);
+  priceEl.addEventListener('input', updateTotal);
+
+  // 주문 일자 기본값 = 오늘
+  document.getElementById('orderDate').value = new Date().toISOString().slice(0, 10);
+
+  const MAX_QUOTE_BYTES = 4 * 1024 * 1024;
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('파일을 읽지 못했습니다'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('orderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const quoteInput = document.getElementById('quoteFile');
+    const file = quoteInput.files[0];
+
+    if (file && file.size > MAX_QUOTE_BYTES) {
+      showToast('견적서 파일이 4MB를 넘습니다. 더 작은 파일로 첨부해주세요');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '전송 중...';
+
+    const record = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      requester: document.getElementById('requester').value.trim(),
+      vendor: document.getElementById('vendor').value.trim(),
+      item: document.getElementById('item').value.trim(),
+      spec: document.getElementById('spec').value.trim(),
+      orderDate: document.getElementById('orderDate').value,
+      quantity: Number(qtyEl.value) || 1,
+      unitPrice: Number(priceEl.value) || 0,
+      status: 'pending',      // pending: 발주 대기, ordered: 발주 완료
+      billed: false,          // 산단 청구 여부
+      hasQuote: false,
+      quoteFileName: null,
+      createdAt: new Date().toISOString()
+    };
+    record.totalPrice = record.quantity * record.unitPrice;
+
+    try {
+      let quoteBase64 = null;
+      if (file) {
+        quoteBase64 = await readFileAsDataURL(file);
+        record.quoteFileName = file.name;
+      }
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'create',
+          order: { ...record, quoteBase64 }
+        })
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data && data.error ? data.error : '저장 실패');
+
+      showToast('신청이 저장되었습니다');
+      e.target.reset();
+      qtyEl.value = 1;
+      document.getElementById('orderDate').value = new Date().toISOString().slice(0, 10);
+      updateTotal();
+    } catch (err) {
+      console.error(err);
+      showToast('저장에 실패했습니다. 다시 시도해주세요');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '신청 보내기';
+    }
+  });
+
+  // ---------- 관리자 대시보드 ----------
+  let allOrders = [];
+
+  async function loadOrders() {
+    const wrap = document.getElementById('tableWrap');
+    wrap.innerHTML = '<div class="loading">불러오는 중...</div>';
+    try {
+      const res = await fetch(API_URL, { method: 'GET' });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error('목록 조회 실패');
+      const orders = (data.orders || []).map(o => ({
+        ...o,
+        quantity: Number(o.quantity) || 0,
+        unitPrice: Number(o.unitPrice) || 0,
+        totalPrice: Number(o.totalPrice) || 0,
+        billed: o.billed === true || o.billed === 'TRUE' || o.billed === 'true'
+      }));
+      orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      allOrders = orders;
+      renderStats();
+      renderTable();
+    } catch (err) {
+      console.error(err);
+      wrap.innerHTML = '<div class="empty-state">목록을 불러오지 못했습니다. 새로고침을 눌러 다시 시도해주세요.</div>';
+    }
+  }
+
+  function renderStats() {
+    const total = allOrders.length;
+    const pending = allOrders.filter(o => o.status === 'pending').length;
+    const unbilled = allOrders.filter(o => !o.billed).length;
+    const sum = allOrders.reduce((s, o) => s + (o.totalPrice || 0), 0);
+    document.getElementById('statRow').innerHTML = `
+      <div class="stat"><div class="label">전체 신청</div><div class="value">${total}건</div></div>
+      <div class="stat"><div class="label">발주 대기</div><div class="value">${pending}건</div></div>
+      <div class="stat"><div class="label">청구 전</div><div class="value">${unbilled}건</div></div>
+      <div class="stat"><div class="label">총 금액</div><div class="value">${won(sum)}</div></div>
+    `;
+  }
+
+  function currentFilters() {
+    return {
+      q: document.getElementById('searchBox').value.trim().toLowerCase(),
+      status: document.getElementById('filterStatus').value,
+      billed: document.getElementById('filterBilled').value
+    };
+  }
+
+  function renderTable() {
+    const { q, status, billed } = currentFilters();
+    let rows = allOrders.filter(o => {
+      if (status !== 'all' && o.status !== status) return false;
+      if (billed === 'billed' && !o.billed) return false;
+      if (billed === 'unbilled' && o.billed) return false;
+      if (q) {
+        const hay = `${o.requester} ${o.vendor} ${o.item} ${o.spec||''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const wrap = document.getElementById('tableWrap');
+    if (rows.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">조건에 맞는 신청 내역이 없습니다.</div>';
+      return;
+    }
+
+    wrap.innerHTML = `
+      <table class="orders">
+        <thead>
+          <tr>
+            <th>주문일자</th>
+            <th>신청자</th>
+            <th>업체 / 물품</th>
+            <th>수량</th>
+            <th>합계</th>
+            <th>비고</th>
+            <th>견적서</th>
+            <th>발주완료</th>
+            <th>청구완료</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(o => `
+            <tr data-id="${o.id}">
+              <td class="mono">${escapeHtml(o.orderDate || fmtDate(o.createdAt))}</td>
+              <td class="req-name">${escapeHtml(o.requester)}</td>
+              <td>
+                <div class="item-name">${escapeHtml(o.item)}</div>
+                <div class="item-vendor">${escapeHtml(o.vendor)}</div>
+              </td>
+              <td class="mono">${o.quantity}</td>
+              <td class="amt">${won(o.totalPrice)}</td>
+              <td class="notes-cell">${escapeHtml(o.spec || '—')}</td>
+              <td class="chk-cell">${
+                o.quoteFileUrl
+                  ? `<a class="quote-btn" href="${o.quoteFileUrl}" target="_blank" rel="noopener" title="${escapeHtml(o.quoteFileName || '')}">열기 ↗</a>`
+                  : '<span style="color:#C3C9CE;font-size:12px;">—</span>'
+              }</td>
+              <td class="chk-cell"><input type="checkbox" class="ordered-chk" ${o.status === 'ordered' ? 'checked' : ''}/></td>
+              <td class="chk-cell"><input type="checkbox" class="billed-chk" ${o.billed ? 'checked' : ''}/></td>
+              <td><button class="del-btn" title="삭제">✕</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    wrap.querySelectorAll('tr[data-id]').forEach(tr => {
+      const id = tr.getAttribute('data-id');
+      tr.querySelector('.ordered-chk').addEventListener('change', (e) => {
+        updateOrder(id, { status: e.target.checked ? 'ordered' : 'pending' });
+      });
+      tr.querySelector('.billed-chk').addEventListener('change', (e) => {
+        updateOrder(id, { billed: e.target.checked });
+      });
+      tr.querySelector('.del-btn').addEventListener('click', () => {
+        if (confirm('이 신청 내역을 삭제할까요?')) deleteOrder(id);
+      });
+    });
+  }
+
+  async function updateOrder(id, patch) {
+    const order = allOrders.find(o => o.id === id);
+    if (!order) return;
+    Object.assign(order, patch);
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update', id, ...patch })
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error('업데이트 실패');
+      renderStats();
+    } catch (err) {
+      console.error(err);
+      showToast('업데이트 실패 — 새로고침 후 다시 시도해주세요');
+    }
+  }
+
+  async function deleteOrder(id) {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', id })
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error('삭제 실패');
+      allOrders = allOrders.filter(o => o.id !== id);
+      renderStats();
+      renderTable();
+    } catch (err) {
+      console.error(err);
+      showToast('삭제 실패');
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadOrders);
+  document.getElementById('searchBox').addEventListener('input', renderTable);
+  document.getElementById('filterStatus').addEventListener('change', renderTable);
+  document.getElementById('filterBilled').addEventListener('change', renderTable);
+
+  updateTotal();
+</script>
+</body>
+</html>
