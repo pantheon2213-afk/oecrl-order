@@ -70,7 +70,8 @@
     color: var(--ink);
     border-color: #F4F5F3;
   }
-  main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; transition: max-width .15s ease; }
+  body.admin-mode main { max-width: 1360px; }
   .view { display: none; }
   .view.active { display: block; }
 
@@ -329,6 +330,143 @@
   .del-btn:hover { color: var(--danger); }
 
   .loading { text-align: center; padding: 40px; color: var(--ink-soft); font-size: 13.5px; }
+
+  /* --- 물품 목록 (반복 입력) --- */
+  .items-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .item-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .item-row input {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 10px 11px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FCFCFB;
+  }
+  .item-row input:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .item-name-input { flex: 2 1 130px; }
+  .item-spec-input { flex: 1.4 1 100px; }
+  .item-qty-input { flex: 0 1 64px; }
+  .item-price-input { flex: 1 1 90px; }
+  .item-remove-btn {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: #B7BEC4;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px;
+    line-height: 1;
+  }
+  .item-remove-btn:hover { color: var(--danger); }
+  .add-item-btn {
+    border: 1px dashed var(--line);
+    background: transparent;
+    color: var(--accent);
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    width: 100%;
+    margin: 4px 0 18px;
+  }
+  .add-item-btn:hover { background: var(--accent-soft); }
+
+  /* --- 확인 모달 --- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 24, 28, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 26px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 82vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal-card h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    margin: 0 0 14px;
+  }
+  .modal-meta { font-size: 13px; color: var(--ink-soft); margin-bottom: 10px; }
+  .modal-tag {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .modal-items { list-style: none; margin: 0 0 12px; padding: 0; border-top: 1px solid var(--line); }
+  .modal-items li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .modal-item-name { color: var(--ink); }
+  .modal-item-spec { color: var(--ink-soft); font-size: 12px; }
+  .modal-item-calc { color: var(--ink-soft); font-size: 12.5px; white-space: nowrap; }
+  .modal-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 600;
+    padding-top: 4px;
+    margin-bottom: 16px;
+  }
+  .modal-warning {
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-actions button {
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .modal-cancel { background: #F0F1EF; color: var(--ink-soft); }
+  .modal-cancel:hover { background: #E5E6E3; }
+  .modal-confirm { background: var(--accent); color: #fff; }
+  .modal-confirm:hover { background: #345C4F; }
+  .modal-confirm:disabled { background: #A8B3AE; cursor: default; }
 </style>
 </head>
 <body>
@@ -361,28 +499,30 @@
             <input type="text" id="vendor" placeholder="예: OO시약, OO전자상사" required />
           </div>
           <div class="field">
-            <label>물품명<span class="req">*</span></label>
-            <input type="text" id="item" placeholder="예: 에탄올 4L" required />
-          </div>
-        </div>
-        <div class="row2">
-          <div class="field">
             <label>주문 일자<span class="req">*</span></label>
             <input type="date" id="orderDate" required />
           </div>
-          <div class="field">
-            <label>규격/비고</label>
-            <input type="text" id="spec" placeholder="용량, 모델명 등 (선택)" />
-          </div>
         </div>
-        <div class="row2">
-          <div class="field">
-            <label>수량<span class="req">*</span></label>
-            <input type="number" id="quantity" min="1" value="1" required />
-          </div>
-          <div class="field">
-            <label>단가(원)<span class="req">*</span></label>
-            <input type="number" id="unitPrice" min="0" step="1" placeholder="0" required />
+
+        <div class="items-label">물품 목록<span class="req">*</span></div>
+        <div id="itemsContainer"></div>
+        <button type="button" class="add-item-btn" id="addItemBtn">+ 물품 추가</button>
+
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+            <input type="checkbox" id="alreadyOrdered" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;" />
+            <span>이미 발주를 완료하고 신청합니다</span>
+          </label>
+        </div>
+        <div class="field" id="orderMethodField" style="display:none;">
+          <label>발주 방식<span class="req">*</span></label>
+          <div style="display:flex;gap:18px;padding:2px 0;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:14px;color:var(--ink);cursor:pointer;">
+              <input type="radio" name="orderMethod" value="online" style="width:16px;height:16px;accent-color:var(--accent);" /> 온라인 사이트 주문
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:14px;color:var(--ink);cursor:pointer;">
+              <input type="radio" name="orderMethod" value="manual" style="width:16px;height:16px;accent-color:var(--accent);" /> 메일/구두 발주
+            </label>
           </div>
         </div>
         <div class="field">
@@ -449,6 +589,20 @@
 
 </main>
 
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-card">
+    <h2>아래 내용으로 신청하시겠습니까?</h2>
+    <div id="modalSummary"></div>
+    <div class="modal-warning">
+      주문 실수로 인한 책임은 신청자 본인에게 있으며, 월급에서 차감할 수 있으니 신청 시 유의하세요.
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-cancel" id="modalCancelBtn">취소</button>
+      <button type="button" class="modal-confirm" id="modalConfirmBtn">신청 확정</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span class="check">✓</span><span id="toastMsg">신청이 저장되었습니다</span></div>
 
 <script>
@@ -489,6 +643,7 @@
     tabAdmin.classList.add('active');
     hideAllViews();
     location.hash = 'admin';
+    document.body.classList.add('admin-mode');
     if (adminUnlocked) {
       viewAdmin.classList.add('active');
       loadOrders();
@@ -506,6 +661,7 @@
     hideAllViews();
     viewForm.classList.add('active');
     location.hash = '';
+    document.body.classList.remove('admin-mode');
   }
   tabAdmin.addEventListener('click', goToAdmin);
   tabForm.addEventListener('click', goToForm);
@@ -528,19 +684,75 @@
 
   if (location.hash === '#admin') goToAdmin();
 
-  // ---------- 신청 폼 ----------
-  const qtyEl = document.getElementById('quantity');
-  const priceEl = document.getElementById('unitPrice');
+  // ---------- 신청 폼: 물품 목록 관리 ----------
   const totalDisplay = document.getElementById('totalDisplay');
-  function updateTotal() {
-    const t = (Number(qtyEl.value) || 0) * (Number(priceEl.value) || 0);
-    totalDisplay.textContent = won(t);
+  const itemsContainer = document.getElementById('itemsContainer');
+  let itemRowSeq = 0;
+
+  function itemRowHtml(rowId) {
+    return `
+      <div class="item-row" data-row-id="${rowId}">
+        <input type="text" class="item-name-input" placeholder="물품명" />
+        <input type="text" class="item-spec-input" placeholder="규격/비고 (선택)" />
+        <input type="number" class="item-qty-input" min="1" value="1" placeholder="수량" />
+        <input type="number" class="item-price-input" min="0" step="1" placeholder="단가" />
+        <button type="button" class="item-remove-btn" title="삭제">✕</button>
+      </div>
+    `;
   }
-  qtyEl.addEventListener('input', updateTotal);
-  priceEl.addEventListener('input', updateTotal);
+
+  function addItemRow() {
+    itemRowSeq += 1;
+    itemsContainer.insertAdjacentHTML('beforeend', itemRowHtml(`item${itemRowSeq}`));
+    wireLastItemRow();
+  }
+
+  function wireLastItemRow() {
+    const rows = itemsContainer.querySelectorAll('.item-row');
+    const rowEl = rows[rows.length - 1];
+    rowEl.querySelector('.item-qty-input').addEventListener('input', updateTotal);
+    rowEl.querySelector('.item-price-input').addEventListener('input', updateTotal);
+    rowEl.querySelector('.item-remove-btn').addEventListener('click', () => {
+      if (itemsContainer.querySelectorAll('.item-row').length <= 1) {
+        showToast('최소 1개의 물품이 필요합니다');
+        return;
+      }
+      rowEl.remove();
+      updateTotal();
+    });
+  }
+
+  function resetItemRows() {
+    itemsContainer.innerHTML = '';
+    itemRowSeq = 0;
+    addItemRow();
+  }
+
+  function updateTotal() {
+    let total = 0;
+    itemsContainer.querySelectorAll('.item-row').forEach(r => {
+      const q = Number(r.querySelector('.item-qty-input').value) || 0;
+      const p = Number(r.querySelector('.item-price-input').value) || 0;
+      total += q * p;
+    });
+    totalDisplay.textContent = won(total);
+  }
+
+  document.getElementById('addItemBtn').addEventListener('click', addItemRow);
+  addItemRow();
 
   // 주문 일자 기본값 = 오늘
   document.getElementById('orderDate').value = new Date().toISOString().slice(0, 10);
+
+  // ---------- 이미 발주 완료 체크 → 발주 방식 필드 토글 ----------
+  const orderMethodField = document.getElementById('orderMethodField');
+  document.getElementById('alreadyOrdered').addEventListener('change', (e) => {
+    orderMethodField.style.display = e.target.checked ? 'block' : 'none';
+    document.querySelectorAll('input[name="orderMethod"]').forEach(r => {
+      r.required = e.target.checked;
+      if (!e.target.checked) r.checked = false;
+    });
+  });
 
   const MAX_QUOTE_BYTES = 4 * 1024 * 1024;
   function readFileAsDataURL(file) {
@@ -552,67 +764,150 @@
     });
   }
 
-  document.getElementById('orderForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    const quoteInput = document.getElementById('quoteFile');
-    const file = quoteInput.files[0];
+  // ---------- 신청 보내기 → 확인 모달 ----------
+  let pendingSubmission = null;
 
+  document.getElementById('orderForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const items = Array.from(itemsContainer.querySelectorAll('.item-row')).map(r => ({
+      name: r.querySelector('.item-name-input').value.trim(),
+      spec: r.querySelector('.item-spec-input').value.trim(),
+      quantity: Number(r.querySelector('.item-qty-input').value) || 0,
+      unitPrice: Number(r.querySelector('.item-price-input').value) || 0
+    }));
+
+    if (items.some(it => !it.name || it.quantity <= 0)) {
+      showToast('물품명과 수량을 모두 입력해주세요');
+      return;
+    }
+
+    const alreadyOrdered = document.getElementById('alreadyOrdered').checked;
+    let orderMethod = '';
+    if (alreadyOrdered) {
+      const checked = document.querySelector('input[name="orderMethod"]:checked');
+      if (!checked) { showToast('발주 방식을 선택해주세요'); return; }
+      orderMethod = checked.value;
+    }
+
+    const file = document.getElementById('quoteFile').files[0] || null;
     if (file && file.size > MAX_QUOTE_BYTES) {
       showToast('견적서 파일이 4MB를 넘습니다. 더 작은 파일로 첨부해주세요');
       return;
     }
 
-    btn.disabled = true;
-    btn.textContent = '전송 중...';
+    if (!document.getElementById('requester').value.trim() || !document.getElementById('vendor').value.trim()) {
+      showToast('신청자와 업체명을 입력해주세요');
+      return;
+    }
 
-    const record = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      requester: document.getElementById('requester').value.trim(),
-      vendor: document.getElementById('vendor').value.trim(),
-      item: document.getElementById('item').value.trim(),
-      spec: document.getElementById('spec').value.trim(),
-      orderDate: document.getElementById('orderDate').value,
-      quantity: Number(qtyEl.value) || 1,
-      unitPrice: Number(priceEl.value) || 0,
-      status: 'pending',      // pending: 발주 대기, ordered: 발주 완료
-      billed: false,          // 산단 청구 여부
-      hasQuote: false,
-      quoteFileName: null,
-      createdAt: new Date().toISOString()
-    };
-    record.totalPrice = record.quantity * record.unitPrice;
+    pendingSubmission = { items, alreadyOrdered, orderMethod, file };
+    openConfirmModal(pendingSubmission);
+  });
+
+  function openConfirmModal(state) {
+    const total = state.items.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
+    const requester = document.getElementById('requester').value.trim();
+    const vendor = document.getElementById('vendor').value.trim();
+    const orderDate = document.getElementById('orderDate').value;
+    const methodLabel = state.orderMethod === 'online' ? '온라인 사이트 주문' : '메일/구두 발주';
+
+    document.getElementById('modalSummary').innerHTML = `
+      <div class="modal-meta">
+        <div>${escapeHtml(requester)} · ${escapeHtml(vendor)} · ${escapeHtml(orderDate)}</div>
+        ${state.alreadyOrdered ? `<div class="modal-tag">이미 발주 완료 · ${methodLabel}</div>` : ''}
+      </div>
+      <ul class="modal-items">
+        ${state.items.map(it => `
+          <li>
+            <span class="modal-item-name">${escapeHtml(it.name)}${it.spec ? ` <span class="modal-item-spec">(${escapeHtml(it.spec)})</span>` : ''}</span>
+            <span class="modal-item-calc mono">${it.quantity} × ${won(it.unitPrice)} = ${won(it.quantity * it.unitPrice)}</span>
+          </li>
+        `).join('')}
+      </ul>
+      <div class="modal-total"><span>합계</span><span class="mono">${won(total)}</span></div>
+    `;
+    document.getElementById('confirmModal').classList.add('show');
+  }
+
+  document.getElementById('modalCancelBtn').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('show');
+    pendingSubmission = null;
+  });
+
+  document.getElementById('modalConfirmBtn').addEventListener('click', async () => {
+    if (!pendingSubmission) return;
+    await submitOrder(pendingSubmission);
+  });
+
+  async function submitOrder(state) {
+    const submitBtn = document.getElementById('submitBtn');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '전송 중...';
+    submitBtn.disabled = true;
+
+    const requester = document.getElementById('requester').value.trim();
+    const vendor = document.getElementById('vendor').value.trim();
+    const orderDate = document.getElementById('orderDate').value;
+    const groupId = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const status = state.alreadyOrdered ? 'ordered' : 'pending';
 
     try {
       let quoteBase64 = null;
-      if (file) {
-        quoteBase64 = await readFileAsDataURL(file);
-        record.quoteFileName = file.name;
+      let quoteFileName = null;
+      if (state.file) {
+        quoteBase64 = await readFileAsDataURL(state.file);
+        quoteFileName = state.file.name;
       }
 
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'create',
-          order: { ...record, quoteBase64 }
-        })
-      });
-      const data = await res.json();
-      if (!data || !data.ok) throw new Error(data && data.error ? data.error : '저장 실패');
+      for (let i = 0; i < state.items.length; i++) {
+        const it = state.items[i];
+        const record = {
+          id: `${groupId}_${i}`,
+          groupId,
+          requester,
+          vendor,
+          orderDate,
+          item: it.name,
+          spec: it.spec,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          totalPrice: it.quantity * it.unitPrice,
+          status,
+          billed: false,
+          orderMethod: state.orderMethod || '',
+          quoteFileName: i === 0 ? quoteFileName : null,
+          createdAt: new Date().toISOString()
+        };
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'create',
+            order: { ...record, quoteBase64: i === 0 ? quoteBase64 : null }
+          })
+        });
+        const data = await res.json();
+        if (!data || !data.ok) throw new Error(data && data.error ? data.error : '저장 실패');
+      }
 
-      showToast('신청이 저장되었습니다');
-      e.target.reset();
-      qtyEl.value = 1;
+      showToast(`${state.items.length}건의 물품이 저장되었습니다`);
+      document.getElementById('confirmModal').classList.remove('show');
+      document.getElementById('orderForm').reset();
       document.getElementById('orderDate').value = new Date().toISOString().slice(0, 10);
+      orderMethodField.style.display = 'none';
+      resetItemRows();
       updateTotal();
+      pendingSubmission = null;
     } catch (err) {
       console.error(err);
       showToast('저장에 실패했습니다. 다시 시도해주세요');
     } finally {
-      btn.disabled = false;
-      btn.textContent = '신청 보내기';
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '신청 확정';
+      submitBtn.disabled = false;
     }
-  });
+  }
 
   // ---------- 관리자 대시보드 ----------
   let allOrders = [];
@@ -704,7 +999,7 @@
               <td class="req-name">${escapeHtml(o.requester)}</td>
               <td>
                 <div class="item-name">${escapeHtml(o.item)}</div>
-                <div class="item-vendor">${escapeHtml(o.vendor)}</div>
+                <div class="item-vendor">${escapeHtml(o.vendor)}${o.orderMethod ? ' · ' + (o.orderMethod === 'online' ? '온라인' : '메일/구두') : ''}</div>
               </td>
               <td class="mono">${o.quantity}</td>
               <td class="amt">${won(o.totalPrice)}</td>
