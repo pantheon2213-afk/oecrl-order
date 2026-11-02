@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OECRL 가스 납품 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #111418;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #0f766e;
+    --accent-soft: #e6f2f0;
+    --danger: #b91c1c;
+    --n2: #2563eb;
+    --ar: #7c3aed;
+    --mix: #d97706;
+    --etc: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--ink); font-size: 15px; }
+
+  header {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .bar {
+    max-width: 1100px; margin: 0 auto; padding: 12px 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .bar img { height: 34px; }
+  .bar .title { font-weight: 700; font-size: 17px; }
+  .bar .home {
+    margin-left: auto; text-decoration: none; color: var(--muted);
+    font-size: 14px; border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px;
+  }
+  .bar .home:hover { color: var(--ink); border-color: var(--ink); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+  .req { color: var(--danger); margin-left: 2px; }
+  input, select, textarea {
+    width: 100%; font: inherit; padding: 10px 12px;
+    border: 1px solid #d1d5db; border-radius: 8px; background: #fff;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 84px; }
+  .qty { display: flex; align-items: center; gap: 8px; }
+  .qty span { color: var(--muted); white-space: nowrap; }
+  .hidden { display: none; }
+
+  .btn {
+    font: inherit; font-weight: 700; border: none; cursor: pointer;
+    padding: 12px 16px; border-radius: 10px;
+  }
+  .btn-primary { width: 100%; background: var(--accent); color: #fff; }
+  .btn-primary:disabled { opacity: .55; cursor: wait; }
+  .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 8px 12px; font-weight: 500; font-size: 14px; }
+  .btn-ghost:hover { border-color: var(--ink); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px; border-top: 4px solid var(--tone); }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 22px; font-weight: 900; margin-top: 2px; }
+  .stat .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .tools select { width: auto; padding: 8px 10px; font-size: 14px; }
+  .tools .spacer { flex: 1; }
+  .count { font-size: 13px; color: var(--muted); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 500; background: #fafafa; white-space: nowrap; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.note { color: #374151; max-width: 320px; white-space: pre-wrap; word-break: break-word; }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: var(--tone); white-space: nowrap; }
+  .sub { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; white-space: nowrap; }
+  table { min-width: 600px; }
+  td:first-child, td.num, td:first-child .sub { white-space: nowrap; }
+  .del:hover { color: var(--danger); }
+  .empty { text-align: center; color: var(--muted); padding: 36px 0; }
+
+  .notice { background: #fef3c7; border: 1px solid #fcd34d; color: #78350f; padding: 10px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #111418; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 14px;
+    opacity: 0; transition: .25s; pointer-events: none; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; place-items: center; z-index: 40; padding: 16px; }
+  .modal-bg.show { display: grid; }
+  .modal { background: #fff; border-radius: 14px; padding: 22px; width: 100%; max-width: 380px; }
+  .modal h3 { font-size: 17px; margin-bottom: 14px; }
+  .modal dl { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; font-size: 14px; margin-bottom: 18px; }
+  .modal dt { color: var(--muted); }
+  .modal dd { white-space: pre-wrap; word-break: break-word; }
+  .modal .row { display: flex; gap: 8px; }
+  .modal .row .btn { flex: 1; }
+
+  .t-질소 { --tone: var(--n2); }
+  .t-아르곤 { --tone: var(--ar); }
+  .t-혼합가스 { --tone: var(--mix); }
+  .t-기타 { --tone: var(--etc); }
+
+  @media (max-width: 880px) {
+    main { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <img src="logo.png" alt="OECRL" />
+    <span class="title">가스 납품 관리</span>
+    <a class="home" href="index.html">← 통합 플랫폼</a>
+  </div>
+</header>
+
+<main>
+  <!-- 입력 -->
+  <section class="card">
+    <h2>납품 내역 입력</h2>
+    <form id="gasForm" autocomplete="off">
+      <div class="field">
+        <label for="date">납품 일자<span class="req">*</span></label>
+        <input type="date" id="date" required />
+      </div>
+      <div class="field">
+        <label for="gasType">가스 종류<span class="req">*</span></label>
+        <select id="gasType" required>
+          <option value="">선택하세요</option>
+          <option value="질소">질소 (N₂)</option>
+          <option value="아르곤">아르곤 (Ar)</option>
+          <option value="혼합가스">혼합가스</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="field hidden" id="otherWrap">
+        <label for="otherDetail">기타 가스명<span class="req">*</span></label>
+        <input type="text" id="otherDetail" placeholder="예: 산소, 수소, CO₂ 등" />
+      </div>
+      <div class="field">
+        <label for="quantity">수량<span class="req">*</span></label>
+        <div class="qty">
+          <input type="number" id="quantity" min="1" step="1" value="1" required />
+          <span>병</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="note">특이사항</label>
+        <textarea id="note" placeholder="혼합 비율, 용기 규격, 공병 회수 수량, 납품 업체 등 (선택)"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submitBtn">입력 내용 저장</button>
+    </form>
+  </section>
+
+  <!-- 현황 -->
+  <section class="card">
+    <div id="notice" class="notice hidden"></div>
+    <h2 id="statTitle">이번 달 납품 현황</h2>
+    <div class="stats" id="stats"></div>
+
+    <div class="tools">
+      <select id="fYear"></select>
+      <select id="fMonth"></select>
+      <select id="fType">
+        <option value="">전체 종류</option>
+        <option>질소</option><option>아르곤</option><option>혼합가스</option><option>기타</option>
+      </select>
+      <span class="count" id="count"></span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" id="reloadBtn" type="button">새로고침</button>
+      <button class="btn btn-ghost" id="xlsxBtn" type="button">엑셀 다운로드</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>납품 일자</th><th>가스 종류</th><th style="text-align:right">수량</th><th>특이사항</th><th></th></tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="5" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- 저장 확인 -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <h3>아래 내용으로 저장할까요?</h3>
+    <dl id="confirmBody"></dl>
+    <div class="row">
+      <button class="btn btn-ghost" id="cancelBtn" type="button">취소</button>
+      <button class="btn btn-primary" id="okBtn" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---------- 백엔드 연결 ----------
+  // GasAppsScript.gs를 웹 앱으로 배포한 뒤 발급된 URL(.../exec)을 붙여넣으세요.
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwJQSYFY5chQQozyJBffd-uB9ud9KxQ8nTelL9Vwfd48gC8ZCfStS44TwFRB2OWOV2d/exec';
+
+  const TYPES = ['질소', '아르곤', '혼합가스', '기타'];
+  let records = [];
+
+  const $ = id => document.getElementById(id);
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const typeLabel = r => r.gasType === '기타' && r.otherDetail ? `기타 (${r.otherDetail})` : r.gasType;
+
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  const apiReady = () => API_URL.startsWith('https://script.google.com/');
+
+  // ---------- 입력 폼 ----------
+  $('date').value = todayStr();
+  $('gasType').addEventListener('change', e => {
+    const isOther = e.target.value === '기타';
+    $('otherWrap').classList.toggle('hidden', !isOther);
+    $('otherDetail').required = isOther;
+  });
+
+  let pending = null;
+
+  $('gasForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const rec = {
+      date: $('date').value,
+      gasType: $('gasType').value,
+      otherDetail: $('otherDetail').value.trim(),
+      quantity: Number($('quantity').value),
+      note: $('note').value.trim()
+    };
+    if (!rec.date || !rec.gasType || !(rec.quantity > 0)) return toast('필수 항목을 확인해 주세요');
+    if (rec.gasType === '기타' && !rec.otherDetail) return toast('기타 가스명을 입력해 주세요');
+
+    pending = rec;
+    $('confirmBody').innerHTML = `
+      <dt>납품 일자</dt><dd>${esc(rec.date)}</dd>
+      <dt>가스 종류</dt><dd>${esc(typeLabel(rec))}</dd>
+      <dt>수량</dt><dd>${rec.quantity} 병</dd>
+      <dt>특이사항</dt><dd>${esc(rec.note) || '-'}</dd>`;
+    $('confirmModal').classList.add('show');
+  });
+
+  $('cancelBtn').onclick = () => $('confirmModal').classList.remove('show');
+
+  $('okBtn').onclick = async () => {
+    $('confirmModal').classList.remove('show');
+    if (!apiReady()) return toast('백엔드 URL이 아직 연결되지 않았습니다');
+    const btn = $('submitBtn');
+    btn.disabled = true; btn.textContent = '저장 중…';
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'create', record: pending }) });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '저장 실패');
+      toast('저장되었습니다');
+      $('gasForm').reset();
+      $('date').value = todayStr();
+      $('quantity').value = 1;
+      $('otherWrap').classList.add('hidden');
+      $('otherDetail').required = false;
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast('저장 실패: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '입력 내용 저장';
+    }
+  };
+
+  // ---------- 조회 ----------
+  async function load() {
+    if (!apiReady()) {
+      $('notice').textContent = '아직 Apps Script 웹 앱 URL이 연결되지 않아 화면만 미리보기 상태입니다. gas.html의 API_URL을 설정해 주세요.';
+      $('notice').classList.remove('hidden');
+      records = [];
+      initFilters();
+      render();
+      return;
+    }
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '조회 실패');
+      records = data.records.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+      initFilters();
+      render();
+    } catch (err) {
+      console.error(err);
+      $('tbody').innerHTML = `<tr><td colspan="5" class="empty">데이터를 불러오지 못했습니다 (${esc(err.message)})</td></tr>`;
+    }
+  }
+
+  function initFilters() {
+    const now = new Date();
+    const years = new Set(records.map(r => r.date.slice(0, 4)));
+    years.add(String(now.getFullYear()));
+    const ySel = $('fYear'), mSel = $('fMonth');
+    const keepY = ySel.value || String(now.getFullYear());
+    const keepM = mSel.value || String(now.getMonth() + 1).padStart(2, '0');
+    ySel.innerHTML = '<option value="">전체 연도</option>' +
+      [...years].sort().reverse().map(y => `<option value="${y}">${y}년</option>`).join('');
+    mSel.innerHTML = '<option value="">전체 월</option>' +
+      Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+        .map(m => `<option value="${m}">${Number(m)}월</option>`).join('');
+    ySel.value = keepY; mSel.value = keepM;
+  }
+
+  function filtered() {
+    const y = $('fYear').value, m = $('fMonth').value, t = $('fType').value;
+    return records.filter(r =>
+      (!y || r.date.slice(0, 4) === y) &&
+      (!m || r.date.slice(5, 7) === m) &&
+      (!t || r.gasType === t));
+  }
+
+  function render() {
+    const y = $('fYear').value, m = $('fMonth').value;
+    $('statTitle').textContent =
+      (y ? `${y}년 ` : '전체 기간 ') + (m ? `${Number(m)}월 ` : '') + '납품 현황';
+
+    // 종류별 합계 (종류 필터는 표에만 적용, 요약은 기간 기준)
+    const inPeriod = records.filter(r => (!y || r.date.slice(0, 4) === y) && (!m || r.date.slice(5, 7) === m));
+    $('stats').innerHTML = TYPES.map(t => {
+      const rows = inPeriod.filter(r => r.gasType === t);
+      const sum = rows.reduce((a, r) => a + r.quantity, 0);
+      return `<div class="stat t-${t}"><div class="k">${t} · ${rows.length}건</div><div class="v">${sum}<small>병</small></div></div>`;
+    }).join('');
+
+    const list = filtered();
+    $('count').textContent = `${list.length}건`;
+    if (!list.length) {
+      $('tbody').innerHTML = '<tr><td colspan="5" class="empty">해당 기간의 납품 기록이 없습니다</td></tr>';
+      return;
+    }
+    $('tbody').innerHTML = list.map(r => `
+      <tr>
+        <td>${esc(r.date)}<span class="sub">입력 ${esc(r.createdAt)}</span></td>
+        <td><span class="chip t-${esc(r.gasType)}">${esc(r.gasType)}</span>${r.gasType === '기타' && r.otherDetail ? `<span class="sub">${esc(r.otherDetail)}</span>` : ''}</td>
+        <td class="num">${r.quantity} 병</td>
+        <td class="note">${esc(r.note) || '<span style="color:#9ca3af">-</span>'}</td>
+        <td><button class="del" data-id="${esc(r.id)}" title="삭제(관리자)">삭제</button></td>
+      </tr>`).join('');
+  }
+
+  ['fYear', 'fMonth', 'fType'].forEach(id => $(id).addEventListener('change', render));
+  $('reloadBtn').onclick = load;
+
+  // ---------- 삭제 (관리자 비밀번호) ----------
+  $('tbody').addEventListener('click', async e => {
+    const btn = e.target.closest('.del');
+    if (!btn) return;
+    const rec = records.find(r => r.id === btn.dataset.id);
+    if (!rec) return;
+    const pw = prompt(`${rec.date} ${typeLabel(rec)} ${rec.quantity}병 기록을 삭제합니다.\n관리자 비밀번호를 입력하세요.`);
+    if (!pw) return;
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: rec.id, password: pw }) });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || '삭제 실패');
+      toast('삭제되었습니다');
+      await load();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  // ---------- 엑셀 다운로드 (현재 필터 기준) ----------
+  $('xlsxBtn').onclick = () => {
+    const list = filtered();
+    if (!list.length) return toast('내보낼 기록이 없습니다');
+    const rows = list.map(r => ({
+      '납품일자': r.date,
+      '가스종류': r.gasType,
+      '기타상세': r.otherDetail,
+      '수량(병)': r.quantity,
+      '특이사항': r.note,
+      '입력일시': r.createdAt
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 40 }, { wch: 17 }];
+
+    const y = $('fYear').value, m = $('fMonth').value;
+    const sum = TYPES.map(t => {
+      const sub = list.filter(r => r.gasType === t);
+      return { '가스종류': t, '건수': sub.length, '수량 합계(병)': sub.reduce((a, r) => a + r.quantity, 0) };
+    });
+    const ws2 = XLSX.utils.json_to_sheet(sum);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '납품내역');
+    XLSX.utils.book_append_sheet(wb, ws2, '종류별합계');
+    const tag = (y || '전체') + (m ? '-' + m : '');
+    XLSX.writeFile(wb, `OECRL_가스납품_${tag}.xlsx`);
+  };
+
+  load();
+</script>
+</body>
+</html>
