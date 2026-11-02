@@ -57,6 +57,7 @@
   .qty { display: flex; align-items: center; gap: 8px; }
   .qty span { color: var(--muted); white-space: nowrap; }
   .hidden { display: none; }
+  .date-hint { display: block; margin-top: 5px; font-size: 13px; color: #0f766e; font-weight: 500; min-height: 18px; }
 
   .btn {
     font: inherit; font-weight: 700; border: none; cursor: pointer;
@@ -87,7 +88,7 @@
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: var(--tone); white-space: nowrap; }
   .sub { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
   .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; white-space: nowrap; }
-  table { min-width: 600px; }
+  table { min-width: 680px; }
   td:first-child, td.num, td:first-child .sub { white-space: nowrap; }
   .del:hover { color: var(--danger); }
   .empty { text-align: center; color: var(--muted); padding: 36px 0; }
@@ -139,6 +140,7 @@
       <div class="field">
         <label for="date">납품 일자<span class="req">*</span></label>
         <input type="date" id="date" required />
+        <span class="date-hint" id="dateHint"></span>
       </div>
       <div class="field">
         <label for="gasType">가스 종류<span class="req">*</span></label>
@@ -160,6 +162,10 @@
           <input type="number" id="quantity" min="1" step="1" value="1" required />
           <span>병</span>
         </div>
+      </div>
+      <div class="field">
+        <label for="confirmer">납품 최종 확인자<span class="req">*</span></label>
+        <input type="text" id="confirmer" placeholder="납품을 직접 확인한 사람 이름" required />
       </div>
       <div class="field">
         <label for="note">특이사항</label>
@@ -191,9 +197,9 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>납품 일자</th><th>가스 종류</th><th style="text-align:right">수량</th><th>특이사항</th><th></th></tr>
+          <tr><th>납품 일자</th><th>가스 종류</th><th style="text-align:right">수량</th><th>확인자</th><th>특이사항</th><th></th></tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="5" class="empty">불러오는 중…</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="6" class="empty">불러오는 중…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -239,8 +245,31 @@
 
   const apiReady = () => API_URL.startsWith('https://script.google.com/');
 
+
+  // ---------- 날짜 + 요일 표시 (브라우저 날짜칸에 요일이 빈 괄호로 나오는 문제 보완) ----------
+  function localToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function weekdayLabel(v) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+    if (!m) return '';
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return `${+m[1]}년 ${+m[2]}월 ${+m[3]}일 ${'일월화수목금토'[d.getDay()]}요일`;
+  }
+  function bindWeekday(inputId, hintId) {
+    const inp = document.getElementById(inputId), hint = document.getElementById(hintId);
+    const upd = () => { hint.textContent = weekdayLabel(inp.value); };
+    inp.addEventListener('input', upd);
+    inp.addEventListener('change', upd);
+    upd();
+    return upd;
+  }
+  const withDay = v => { const l = weekdayLabel(v); return l ? `${v} (${l.slice(-3, -2)})` : v; };
+
   // ---------- 입력 폼 ----------
   $('date').value = todayStr();
+  const updDay = bindWeekday('date', 'dateHint');
   $('gasType').addEventListener('change', e => {
     const isOther = e.target.value === '기타';
     $('otherWrap').classList.toggle('hidden', !isOther);
@@ -256,16 +285,19 @@
       gasType: $('gasType').value,
       otherDetail: $('otherDetail').value.trim(),
       quantity: Number($('quantity').value),
-      note: $('note').value.trim()
+      note: $('note').value.trim(),
+      confirmer: $('confirmer').value.trim()
     };
     if (!rec.date || !rec.gasType || !(rec.quantity > 0)) return toast('필수 항목을 확인해 주세요');
     if (rec.gasType === '기타' && !rec.otherDetail) return toast('기타 가스명을 입력해 주세요');
+    if (!rec.confirmer) return toast('납품 최종 확인자 이름을 입력해 주세요');
 
     pending = rec;
     $('confirmBody').innerHTML = `
-      <dt>납품 일자</dt><dd>${esc(rec.date)}</dd>
+      <dt>납품 일자</dt><dd>${esc(weekdayLabel(rec.date))}</dd>
       <dt>가스 종류</dt><dd>${esc(typeLabel(rec))}</dd>
       <dt>수량</dt><dd>${rec.quantity} 병</dd>
+      <dt>최종 확인자</dt><dd>${esc(rec.confirmer)}</dd>
       <dt>특이사항</dt><dd>${esc(rec.note) || '-'}</dd>`;
     $('confirmModal').classList.add('show');
   });
@@ -284,6 +316,7 @@
       toast('저장되었습니다');
       $('gasForm').reset();
       $('date').value = todayStr();
+      updDay();
       $('quantity').value = 1;
       $('otherWrap').classList.add('hidden');
       $('otherDetail').required = false;
@@ -315,7 +348,7 @@
       render();
     } catch (err) {
       console.error(err);
-      $('tbody').innerHTML = `<tr><td colspan="5" class="empty">데이터를 불러오지 못했습니다 (${esc(err.message)})</td></tr>`;
+      $('tbody').innerHTML = `<tr><td colspan="6" class="empty">데이터를 불러오지 못했습니다 (${esc(err.message)})</td></tr>`;
     }
   }
 
@@ -358,14 +391,15 @@
     const list = filtered();
     $('count').textContent = `${list.length}건`;
     if (!list.length) {
-      $('tbody').innerHTML = '<tr><td colspan="5" class="empty">해당 기간의 납품 기록이 없습니다</td></tr>';
+      $('tbody').innerHTML = '<tr><td colspan="6" class="empty">해당 기간의 납품 기록이 없습니다</td></tr>';
       return;
     }
     $('tbody').innerHTML = list.map(r => `
       <tr>
-        <td>${esc(r.date)}<span class="sub">입력 ${esc(r.createdAt)}</span></td>
+        <td>${esc(withDay(r.date))}<span class="sub">입력 ${esc(r.createdAt)}</span></td>
         <td><span class="chip t-${esc(r.gasType)}">${esc(r.gasType)}</span>${r.gasType === '기타' && r.otherDetail ? `<span class="sub">${esc(r.otherDetail)}</span>` : ''}</td>
         <td class="num">${r.quantity} 병</td>
+        <td style="white-space:nowrap">${esc(r.confirmer) || '<span style="color:#9ca3af">-</span>'}</td>
         <td class="note">${esc(r.note) || '<span style="color:#9ca3af">-</span>'}</td>
         <td><button class="del" data-id="${esc(r.id)}" title="삭제(관리자)">삭제</button></td>
       </tr>`).join('');
@@ -402,11 +436,12 @@
       '가스종류': r.gasType,
       '기타상세': r.otherDetail,
       '수량(병)': r.quantity,
+      '최종확인자': r.confirmer,
       '특이사항': r.note,
       '입력일시': r.createdAt
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 40 }, { wch: 17 }];
+    ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 10 }, { wch: 40 }, { wch: 17 }];
 
     const y = $('fYear').value, m = $('fMonth').value;
     const sum = TYPES.map(t => {
