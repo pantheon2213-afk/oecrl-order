@@ -57,7 +57,23 @@
   .qty { display: flex; align-items: center; gap: 8px; }
   .qty span { color: var(--muted); white-space: nowrap; }
   .hidden { display: none; }
-  .date-hint { display: block; margin-top: 5px; font-size: 13px; color: #0f766e; font-weight: 500; min-height: 18px; }
+  .date-wrap { position: relative; }
+  .date-wrap .date-native { color: transparent !important; cursor: pointer; }
+  .date-wrap .date-native::-webkit-datetime-edit,
+  .date-wrap .date-native::-webkit-datetime-edit-fields-wrapper { color: transparent; }
+  .date-wrap .date-native::-webkit-calendar-picker-indicator { cursor: pointer; }
+  .date-wrap .date-native::-webkit-datetime-edit-year-field,
+  .date-wrap .date-native::-webkit-datetime-edit-month-field,
+  .date-wrap .date-native::-webkit-datetime-edit-day-field,
+  .date-wrap .date-native::-webkit-datetime-edit-text,
+  .date-wrap .date-native::-webkit-datetime-edit-year-field:focus,
+  .date-wrap .date-native::-webkit-datetime-edit-month-field:focus,
+  .date-wrap .date-native::-webkit-datetime-edit-day-field:focus { background: transparent; color: transparent; }
+  .date-display {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; font-size: 15px; color: inherit; font-variant-numeric: tabular-nums;
+  }
+  .date-display.empty { color: #9ca3af; }
 
   .btn {
     font: inherit; font-weight: 700; border: none; cursor: pointer;
@@ -257,15 +273,28 @@
     const d = new Date(+m[1], +m[2] - 1, +m[3]);
     return `${+m[1]}년 ${+m[2]}월 ${+m[3]}일 ${'일월화수목금토'[d.getDay()]}요일`;
   }
+  const withDay = v => { const l = weekdayLabel(v); return l ? `${v} (${l.slice(-3, -2)})` : v; };
+  // 브라우저 기본 날짜 글자를 숨기고, 같은 자리에 'YYYY-MM-DD (요일)'을 직접 표시
   function bindWeekday(inputId, hintId) {
-    const inp = document.getElementById(inputId), hint = document.getElementById(hintId);
-    const upd = () => { hint.textContent = weekdayLabel(inp.value); };
+    const inp = document.getElementById(inputId);
+    const hint = document.getElementById(hintId);
+    if (hint) hint.remove();
+    const wrap = document.createElement('div');
+    wrap.className = 'date-wrap';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    const shown = document.createElement('span');
+    shown.className = 'date-display';
+    wrap.appendChild(shown);
+    inp.classList.add('date-native');
+    // 칸 아무 곳이나 누르면 달력이 열리도록
+    inp.addEventListener('click', () => { try { inp.showPicker(); } catch (e) {} });
+    const upd = () => { shown.textContent = inp.value ? withDay(inp.value) : '날짜 선택'; shown.classList.toggle('empty', !inp.value); };
     inp.addEventListener('input', upd);
     inp.addEventListener('change', upd);
     upd();
     return upd;
   }
-  const withDay = v => { const l = weekdayLabel(v); return l ? `${v} (${l.slice(-3, -2)})` : v; };
 
   // ---------- 입력 폼 ----------
   $('date').value = todayStr();
