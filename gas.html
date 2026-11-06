@@ -84,7 +84,7 @@
   .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 8px 12px; font-weight: 500; font-size: 14px; }
   .btn-ghost:hover { border-color: var(--ink); }
 
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; margin-bottom: 18px; }
   .stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px; border-top: 4px solid var(--tone); }
   .stat .k { font-size: 12px; color: var(--muted); }
   .stat .v { font-size: 22px; font-weight: 900; margin-top: 2px; }
@@ -128,14 +128,10 @@
   .modal .row { display: flex; gap: 8px; }
   .modal .row .btn { flex: 1; }
 
-  .t-질소 { --tone: var(--n2); }
-  .t-아르곤 { --tone: var(--ar); }
-  .t-혼합가스 { --tone: var(--mix); }
-  .t-기타 { --tone: var(--etc); }
+  /* 가스 종류별 색상은 스크립트의 TYPE_TONE에서 지정 */
 
   @media (max-width: 880px) {
     main { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -162,9 +158,10 @@
         <label for="gasType">가스 종류<span class="req">*</span></label>
         <select id="gasType" required>
           <option value="">선택하세요</option>
-          <option value="질소">질소 (N₂)</option>
-          <option value="아르곤">아르곤 (Ar)</option>
+          <option value="일반 질소">일반 질소 (N₂)</option>
+          <option value="고순도 질소">고순도 질소 (N₂)</option>
           <option value="혼합가스">혼합가스</option>
+          <option value="아르곤 가스">아르곤 가스 (Ar)</option>
           <option value="기타">기타</option>
         </select>
       </div>
@@ -202,7 +199,7 @@
       <select id="fMonth"></select>
       <select id="fType">
         <option value="">전체 종류</option>
-        <option>질소</option><option>아르곤</option><option>혼합가스</option><option>기타</option>
+        <option>일반 질소</option><option>고순도 질소</option><option>혼합가스</option><option>아르곤 가스</option><option>기타</option>
       </select>
       <span class="count" id="count"></span>
       <span class="spacer"></span>
@@ -240,7 +237,19 @@
   // GasAppsScript.gs를 웹 앱으로 배포한 뒤 발급된 URL(.../exec)을 붙여넣으세요.
   const API_URL = 'https://script.google.com/macros/s/AKfycbwJQSYFY5chQQozyJBffd-uB9ud9KxQ8nTelL9Vwfd48gC8ZCfStS44TwFRB2OWOV2d/exec';
 
-  const TYPES = ['질소', '아르곤', '혼합가스', '기타'];
+  const TYPES = ['일반 질소', '고순도 질소', '혼합가스', '아르곤 가스', '기타'];
+  const TYPE_TONE = {
+    '일반 질소': '#60a5fa',
+    '고순도 질소': '#1d4ed8',
+    '혼합가스': '#d97706',
+    '아르곤 가스': '#7c3aed',
+    '기타': '#6b7280',
+    '질소(구분 전)': '#94a3b8'
+  };
+  const tone = t => `--tone:${TYPE_TONE[t] || '#6b7280'}`;
+  // 이전 버전(질소/아르곤)으로 입력된 기록 처리
+  const LEGACY = { '아르곤': '아르곤 가스', '질소': '질소(구분 전)' };
+  const normType = t => LEGACY[t] || t;
   let records = [];
 
   const $ = id => document.getElementById(id);
@@ -372,6 +381,7 @@
       const res = await fetch(API_URL);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || '조회 실패');
+      data.records.forEach(r => { r.gasType = normType(r.gasType); });
       records = data.records.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
       initFilters();
       render();
@@ -411,10 +421,11 @@
 
     // 종류별 합계 (종류 필터는 표에만 적용, 요약은 기간 기준)
     const inPeriod = records.filter(r => (!y || r.date.slice(0, 4) === y) && (!m || r.date.slice(5, 7) === m));
-    $('stats').innerHTML = TYPES.map(t => {
+    const statTypes = inPeriod.some(r => r.gasType === '질소(구분 전)') ? [...TYPES, '질소(구분 전)'] : TYPES;
+    $('stats').innerHTML = statTypes.map(t => {
       const rows = inPeriod.filter(r => r.gasType === t);
       const sum = rows.reduce((a, r) => a + r.quantity, 0);
-      return `<div class="stat t-${t}"><div class="k">${t} · ${rows.length}건</div><div class="v">${sum}<small>병</small></div></div>`;
+      return `<div class="stat" style="${tone(t)}"><div class="k">${t} · ${rows.length}건</div><div class="v">${sum}<small>병</small></div></div>`;
     }).join('');
 
     const list = filtered();
@@ -426,7 +437,7 @@
     $('tbody').innerHTML = list.map(r => `
       <tr>
         <td>${esc(withDay(r.date))}<span class="sub">입력 ${esc(r.createdAt)}</span></td>
-        <td><span class="chip t-${esc(r.gasType)}">${esc(r.gasType)}</span>${r.gasType === '기타' && r.otherDetail ? `<span class="sub">${esc(r.otherDetail)}</span>` : ''}</td>
+        <td><span class="chip" style="${tone(r.gasType)}">${esc(r.gasType)}</span>${r.gasType === '기타' && r.otherDetail ? `<span class="sub">${esc(r.otherDetail)}</span>` : ''}</td>
         <td class="num">${r.quantity} 병</td>
         <td style="white-space:nowrap">${esc(r.confirmer) || '<span style="color:#9ca3af">-</span>'}</td>
         <td class="note">${esc(r.note) || '<span style="color:#9ca3af">-</span>'}</td>
@@ -473,7 +484,8 @@
     ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 10 }, { wch: 40 }, { wch: 17 }];
 
     const y = $('fYear').value, m = $('fMonth').value;
-    const sum = TYPES.map(t => {
+    const sumTypes = list.some(r => r.gasType === '질소(구분 전)') ? [...TYPES, '질소(구분 전)'] : TYPES;
+    const sum = sumTypes.map(t => {
       const sub = list.filter(r => r.gasType === t);
       return { '가스종류': t, '건수': sub.length, '수량 합계(병)': sub.reduce((a, r) => a + r.quantity, 0) };
     });
